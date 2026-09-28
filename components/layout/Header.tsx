@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/lib/clerk-config";
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -11,7 +12,13 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
           <p className="mt-0.5 text-sm text-text-secondary">{subtitle}</p>
         )}
       </div>
-      <UserButton afterSignOutUrl="/sign-in" />
+      {isClerkConfigured ? (
+        <UserButton afterSignOutUrl="/sign-in" />
+      ) : (
+        <span className="rounded border border-warning/30 bg-warning/10 px-2 py-1 font-mono text-[11px] text-warning">
+          Auth not configured
+        </span>
+      )}
     </header>
   );
 }

@@ -3,9 +3,10 @@ import { Header } from "@/components/layout/Header";
 import { DiscoverySearch } from "@/components/discover/DiscoverySearch";
 import { getCampaigns, getRecentSearches } from "@/lib/data";
 import { MOCK_MODE } from "@/lib/modash/client";
+import { isClerkConfigured } from "@/lib/clerk-config";
 
 export default async function DiscoverPage() {
-  const { userId } = auth();
+  const { userId } = isClerkConfigured ? auth() : { userId: null };
   const [campaigns, recentSearches] = await Promise.all([
     getCampaigns(),
     userId ? getRecentSearches(userId) : Promise.resolve([]),

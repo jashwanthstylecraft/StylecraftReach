@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { isClerkConfigured } from "@/lib/clerk-config";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,6 +26,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const body = (
+    <html lang="en" className="dark">
+      <body
+        className={`${inter.variable} ${jetbrainsMono.variable} bg-background font-sans antialiased`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+
+  if (!isClerkConfigured) {
+    return body;
+  }
+
   return (
     <ClerkProvider
       appearance={{
@@ -35,13 +50,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" className="dark">
-        <body
-          className={`${inter.variable} ${jetbrainsMono.variable} bg-background font-sans antialiased`}
-        >
-          {children}
-        </body>
-      </html>
+      {body}
     </ClerkProvider>
   );
 }

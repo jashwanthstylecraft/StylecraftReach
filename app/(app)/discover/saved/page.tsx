@@ -2,9 +2,10 @@ import { auth } from "@clerk/nextjs/server";
 import { Header } from "@/components/layout/Header";
 import { SavedCreatorsGrid } from "@/components/discover/SavedCreatorsGrid";
 import { getCampaigns, getSavedCreators } from "@/lib/data";
+import { isClerkConfigured } from "@/lib/clerk-config";
 
 export default async function SavedCreatorsPage() {
-  const { userId } = auth();
+  const { userId } = isClerkConfigured ? auth() : { userId: null };
   const [savedCreators, campaigns] = await Promise.all([
     userId ? getSavedCreators(userId) : Promise.resolve([]),
     getCampaigns(),
