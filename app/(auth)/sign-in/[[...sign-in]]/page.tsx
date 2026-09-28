@@ -1,0 +1,19 @@
+import { SignIn } from "@clerk/nextjs";
+
+export default function SignInPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <SignIn
+        appearance={{
+          variables: {
+            colorPrimary: "#C8A96E",
+            colorBackground: "#111114",
+            colorText: "#F4F4F5",
+            colorInputBackground: "#1A1A1F",
+            colorInputText: "#F4F4F5",
+          },
+        }}
+      />
+    </div>
+  );
+}

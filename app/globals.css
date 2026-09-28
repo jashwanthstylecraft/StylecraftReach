@@ -3,25 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: dark;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: #F4F4F5;
+  background: #0A0A0B;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #2A2A32;
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
