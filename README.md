@@ -7,15 +7,18 @@ contact through completed campaigns: Shortlisted → Outreach sent → Negotiati
 Phase 2 adds an influencer discovery engine (Modash search + Claude relevance scoring) that feeds
 straight into the same pipeline. Phase 3 adds affiliate link tracking (Dub.co), promo codes, and
 an ROI dashboard on top of that. Phase 4 adds direct influencer payouts via Stripe Connect,
-commission automation, and PDF invoices.
+commission automation, and PDF invoices. Phase 5 adds a separate, lighter-themed portal
+(`/portal/*`) where influencers log in, view briefs, submit content, and track earnings —
+plus `/content-approvals` on the brand side to review what they submit.
 
 ## Stack
 
-Next.js 14 (App Router, TypeScript) · Tailwind CSS · Supabase (Postgres) · Clerk (auth) ·
-`@dnd-kit` (drag and drop) · Recharts · Lucide icons · Modash (creator discovery, Phase 2) ·
-Anthropic API (AI relevance scoring, Phase 2) · Dub.co (affiliate links, Phase 3) ·
-`@react-pdf/renderer` (performance report PDFs, Phase 3) · Stripe Connect (payouts, Phase 4) ·
-`pdf-lib` (invoice PDFs, Phase 4).
+Next.js 14 (App Router, TypeScript) · Tailwind CSS · Supabase (Postgres) · Clerk (auth,
+role-based for Phase 5) · `@dnd-kit` (drag and drop) · Recharts · Lucide icons ·
+Modash (creator discovery, Phase 2) · Anthropic API (AI relevance scoring, Phase 2) ·
+Dub.co (affiliate links, Phase 3) · `@react-pdf/renderer` (performance report PDFs, Phase 3) ·
+Stripe Connect (payouts, Phase 4) · `pdf-lib` (invoice PDFs, Phase 4) · `svix` (Clerk webhook
+verification, Phase 5).
 
 ## Setup
 
@@ -38,13 +41,27 @@ supabase/migrations/004_phase3_affiliate.sql     # affiliate_links, promo_codes,
 supabase/migrations/005_phase3_seed.sql          # sample promo codes, links, conversions, daily stats
 supabase/migrations/006_phase4_payments.sql      # payments, invoices, payment_schedule, Stripe columns, storage bucket
 supabase/migrations/007_phase4_seed.sql          # sample payments + a scheduled payment
+supabase/migrations/008_phase5_portal.sql        # invitations, content_submissions, portal_messages, notification prefs
 ```
 
 ### 3. Create a Clerk application
 
 Create an application at [clerk.com](https://clerk.com) (email/password or your preferred
-provider). No extra configuration needed — sign-in and sign-up pages are already wired up at
-`/sign-in` and `/sign-up`.
+provider). Sign-in and sign-up pages are already wired up at `/sign-in` and `/sign-up` (brand
+team) and `/portal/sign-in` (influencers).
+
+**One manual step Phase 5 needs that can't be done from code:** in the Clerk dashboard, go to
+**Sessions → Customize session token** and add:
+```json
+{ "role": "{{user.public_metadata.role}}" }
+```
+Without this, `middleware.ts` can't tell brand users from influencers and everyone is treated as
+`brand` — the app still works, it just won't route invited influencers into `/portal/*`.
+
+If you want invite acceptance to actually link an influencer's new account back to their
+`influencers` row (rather than just sending the invite), also add a Clerk webhook: **Webhooks →
+Add Endpoint**, URL `{your app URL}/api/webhooks/clerk`, subscribe to `user.created`, and copy its
+signing secret into `CLERK_WEBHOOK_SECRET`.
 
 ### 4. Environment variables
 
@@ -61,6 +78,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 
 # Phase 2 — optional, see "Discovery engine" below
 MODASH_API_KEY=
@@ -78,6 +99,10 @@ STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_APP_URL=
 N8N_PAYMENT_WEBHOOK_URL=
+
+# Phase 5 — optional, see "Influencer portal" below
+CLERK_WEBHOOK_SECRET=
+N8N_PORTAL_WEBHOOK_URL=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only — all Supabase reads/writes happen in server
@@ -112,6 +137,13 @@ Visit `http://localhost:3000` — you'll be redirected to sign in, then to `/das
 | `/payments` | Outstanding + payment history tabs, batch payout, Stripe onboarding status |
 | `/payments/[influencerId]` | Per-influencer payout detail: onboarding, flat fee, commission, schedule |
 | `/invoices` | Searchable invoice list with PDF download |
+| `/content-approvals` | Brand reviews influencer content submissions: approve or request changes |
+| `/portal` | Influencer home: earnings snapshot, active campaigns, activity feed |
+| `/portal/campaigns` | All campaigns the signed-in influencer is part of, grouped by stage |
+| `/portal/campaigns/[id]` | Brief, deliverables + content submission, gifts, earnings, message thread |
+| `/portal/earnings` | Earnings summary, by-campaign breakdown, payout history with invoices |
+| `/portal/profile` | Editable profile, Stripe bank connection, notification preferences |
+| `/portal/onboarding` | 4-step first-time setup (welcome → profile → connect Stripe → done) |
 
 ## Notes on Phase 1 scope
 
@@ -196,6 +228,33 @@ with the user before writing any Stripe code).
   webhook secret.
 - n8n workflow 3 (`docs/n8n-workflows.md`) documents the "payment sent" alert — not wired up, same
   as Phase 3's workflows.
+
+## Influencer portal (Phase 5)
+
+- **Role-based routing needs one manual Clerk dashboard step** (see Setup step 3 above) — until
+  the `role` session claim is added, `lib/clerk-role.ts` defaults everyone to `brand`, so the app
+  degrades to "Phase 1–4 only" rather than breaking.
+- **The brief's RLS policies use `auth.uid()`**, which is Supabase Auth's session function — this
+  app authenticates via Clerk, never Supabase Auth, so `auth.uid()` is always null here.
+  `supabase/migrations/008_phase5_portal.sql` creates the tables and policies as specified (they're
+  harmless — the service-role key this app always uses bypasses RLS entirely), but the real
+  influencer-data isolation is application-layer: every portal read in `lib/portal-data.ts` is
+  explicitly scoped by the signed-in influencer's `clerk_user_id`, not by Postgres RLS.
+- **Invite acceptance requires the `CLERK_WEBHOOK_SECRET` webhook** (Setup step 3) to actually link
+  a new influencer account to their `influencers` row via `clerk_user_id` — without it, "Send
+  portal invite" still sends a real Clerk invitation email, but nothing connects the accepted
+  account back to Supabase, so `/portal` won't find their data.
+- **All four Phase 5 n8n workflows share one webhook URL** (`N8N_PORTAL_WEBHOOK_URL`), routed by a
+  `type` field, rather than one env var each — see `docs/n8n-workflows.md`.
+- Two things trimmed for scope, both purely cosmetic: profile photo upload (the onboarding wizard
+  and profile page skip it — there's no avatar upload/storage UI built yet, only the existing
+  `avatar_url` column) and a portal-themed `Modal`/`DataTable` (portal pages currently reuse the
+  brand dashboard's dark-themed modal and table components as-is, so submission/preview dialogs
+  look visually inconsistent with the rest of the light portal theme — everything on the two
+  hand-built pages, `/portal/earnings`, is properly light-themed).
+- "Approve" on `/content-approvals` marks the deliverable complete and, once *every* deliverable
+  for that campaign placement is complete, flips `campaign_influencers.stage` to `Completed`
+  automatically — the same stage Phase 1's kanban reads.
 
 ## Deploying
 

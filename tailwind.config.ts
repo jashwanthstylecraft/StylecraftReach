@@ -27,6 +27,16 @@ const config: Config = {
           youtube: "#FF0000",
           x: "#E7E9EA",
         },
+        // Influencer portal (/portal/*) — deliberately lighter/friendlier than
+        // the brand dashboard's dark theme; see Phase 5 design direction.
+        portal: {
+          bg: "#F8F8FA",
+          surface: "#FFFFFF",
+          border: "#E4E4EC",
+          "text-primary": "#111114",
+          "text-secondary": "#5A5A68",
+          success: "#16A34A",
+        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "sans-serif"],

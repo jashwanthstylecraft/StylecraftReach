@@ -51,6 +51,7 @@ export interface Influencer {
   stripe_account_id: string | null;
   stripe_onboarded: boolean;
   stripe_onboarded_at: string | null;
+  clerk_user_id: string | null;
 }
 
 export interface CampaignInfluencer {
@@ -149,6 +150,57 @@ export interface DailyStat {
   revenue: number;
   commission_amount: number;
   created_at: string;
+}
+
+export type InvitationStatus = "pending" | "accepted" | "expired";
+export type SubmissionStatus = "pending_review" | "approved" | "needs_revision" | "rejected";
+export type SenderRole = "brand" | "influencer";
+
+export interface InfluencerInvitation {
+  id: string;
+  influencer_id: string;
+  clerk_invitation_id: string | null;
+  clerk_user_id: string | null;
+  email: string;
+  status: InvitationStatus;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export interface ContentSubmission {
+  id: string;
+  deliverable_id: string;
+  campaign_influencer_id: string;
+  submitted_url: string | null;
+  caption: string | null;
+  notes: string | null;
+  status: SubmissionStatus;
+  feedback: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface PortalMessage {
+  id: string;
+  campaign_influencer_id: string;
+  sender_role: SenderRole;
+  sender_id: string;
+  sender_name: string;
+  content: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface InfluencerNotificationPrefs {
+  id: string;
+  influencer_id: string;
+  email_on_payment: boolean;
+  email_on_approval: boolean;
+  email_on_deliverable: boolean;
+  whatsapp_number: string | null;
+  whatsapp_enabled: boolean;
+  updated_at: string;
 }
 
 // Joined shapes used across the CRM views

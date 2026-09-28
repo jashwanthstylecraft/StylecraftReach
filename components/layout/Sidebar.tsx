@@ -14,6 +14,7 @@ import {
   Tag,
   DollarSign,
   FileText,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,12 +26,13 @@ const NAV_ITEMS = [
   { href: "/promo-codes", label: "Promo Codes", icon: Tag },
   { href: "/payments", label: "Payments", icon: DollarSign },
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/content-approvals", label: "Content Approvals", icon: CheckSquare },
   { href: "/influencers", label: "Influencers", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/influencers/new", label: "Add influencer", icon: UserPlus },
 ];
 
-export function Sidebar() {
+export function Sidebar({ pendingApprovalsCount = 0 }: { pendingApprovalsCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -61,7 +63,12 @@ export function Sidebar() {
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.href === "/content-approvals" && pendingApprovalsCount > 0 && (
+                <span className="rounded-full bg-gold/20 px-1.5 py-0.5 font-mono text-[10px] text-gold">
+                  {pendingApprovalsCount}
+                </span>
+              )}
             </Link>
           );
         })}

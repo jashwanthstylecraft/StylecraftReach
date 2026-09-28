@@ -7,6 +7,7 @@ import { CommunicationLog } from "@/components/influencer/CommunicationLog";
 import { DeliverableChecklist } from "@/components/influencer/DeliverableChecklist";
 import { GiftTracker } from "@/components/influencer/GiftTracker";
 import { EditInfluencerModal } from "@/components/influencer/EditInfluencerModal";
+import { SendPortalInviteButton } from "@/components/influencer/SendPortalInviteButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { getFullPlacementsForInfluencer, getInfluencerById } from "@/lib/data";
 import { formatCurrency, formatFollowers } from "@/lib/utils";
@@ -57,8 +58,13 @@ export default async function InfluencerProfilePage({
                 {influencer.notes}
               </p>
             )}
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <EditInfluencerModal influencer={influencer} />
+              <SendPortalInviteButton
+                influencerId={influencer.id}
+                influencerEmail={influencer.email}
+                alreadyLinked={Boolean(influencer.clerk_user_id)}
+              />
             </div>
           </div>
         </div>

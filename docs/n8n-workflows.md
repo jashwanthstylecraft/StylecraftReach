@@ -1,6 +1,6 @@
 # n8n workflows
 
-Three workflows to build in n8n (`josepho05.app.n8n.cloud`). None are wired up yet — this
+Seven workflows to build in n8n (`josepho05.app.n8n.cloud`). None are wired up yet — this
 documents the steps so they're ready to build.
 
 ## Workflow 1: "StylecraftReach — Daily stats sync"
@@ -72,3 +72,41 @@ body above to that URL right after a transfer completes (mock or real) and an in
 generated — it no-ops if the env var is unset, same pattern as workflow 2's wiring. Resend itself
 isn't installed in this project (no `RESEND_API_KEY`, no SDK) — email sending for now is either
 this n8n workflow, or the plain `mailto:` link on `/payments/[influencerId]`'s onboarding banner.
+
+## Workflows 4–7: Portal notifications
+
+All four share **one webhook** (`N8N_PORTAL_WEBHOOK_URL`) — `lib/portal-notify.ts` POSTs
+`{ type, ...payload }` to it for every event below, so build one n8n workflow with a **Switch
+node** on `{{$json.type}}` routing to the four branches, rather than four separate webhook URLs
+(the brief's own "no new API keys needed" note is honored this way).
+
+### 4. Content approved → notify influencer
+- `type: "content_approved"`, payload: `{ influencerHandle, influencerEmail, campaignName }`
+- Triggered by: `app/api/content-approvals/approve/route.ts`
+- Send email via Resend: "Your content was approved!"
+- Send WhatsApp if the influencer enabled it (`influencer_notifications.whatsapp_enabled`):
+  "Your submission for {campaignName} was approved by StylecraftUS"
+
+### 5. Content needs revision → notify influencer
+- `type: "content_needs_revision"`, payload: `{ influencerHandle, influencerEmail, campaignName, feedback }`
+- Triggered by: `app/api/content-approvals/request-changes/route.ts`
+- Send email with the feedback text: "Feedback on your submission: {feedback}"
+
+### 6. New deliverable added → notify influencer
+- Not currently triggered by app code (the brief calls for a Supabase `deliverables` INSERT
+  trigger) — the cleanest way to wire this without adding another webhook call site is an **n8n
+  native Supabase trigger** on `deliverables` INSERT, rather than `type: "new_deliverable"` on the
+  shared webhook.
+- Send email: "New deliverable added to {campaign}: {description} — due {due_date}"
+
+### 7. New portal message → notify recipient
+- `type: "new_message"`, payload: `{ senderRole, senderName, influencerHandle, influencerEmail, campaignName, content }`
+- Triggered by: `app/api/portal/messages/route.ts` (both directions — influencer→brand and brand→influencer)
+- **Switch on `senderRole`:** `brand` → email the influencer ("New message from StylecraftUS");
+  `influencer` → email the brand team ("New message from {influencerHandle}") — the brand team's
+  destination address isn't stored anywhere in this app, so hardcode it in the n8n node.
+
+### Wiring it to the app
+
+Set `N8N_PORTAL_WEBHOOK_URL` to this workflow's n8n webhook URL. It no-ops (doesn't error) if
+unset, same pattern as every other webhook in this app.
