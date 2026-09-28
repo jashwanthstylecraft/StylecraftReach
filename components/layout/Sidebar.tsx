@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Users, Megaphone, UserPlus, Scissors } from "lucide-react";
+import { LayoutGrid, Users, Megaphone, UserPlus, Scissors, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { href: "/discover", label: "Discover", icon: Search },
   { href: "/influencers", label: "Influencers", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/influencers/new", label: "Add influencer", icon: UserPlus },

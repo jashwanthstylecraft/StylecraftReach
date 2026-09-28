@@ -7,6 +7,7 @@ import type {
   CampaignInfluencerWithInfluencer,
   Influencer,
 } from "@/lib/types";
+import type { DiscoveryPlatform, SavedCreatorRow, SearchHistoryRow } from "@/lib/modash/types";
 
 export async function getCampaigns(): Promise<Campaign[]> {
   const supabase = createServerClient();
@@ -72,6 +73,46 @@ export async function getCampaignInfluencersForCampaign(
     .select("*, influencer:influencers(*)")
     .eq("campaign_id", campaignId)
     .order("stage_updated_at", { ascending: false });
+  if (error) throw error;
+  return data as never;
+}
+
+export async function getSavedCreators(userId: string): Promise<SavedCreatorRow[]> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("saved_creators")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as never;
+}
+
+export async function getCachedProfile(
+  userId: string,
+  platform: DiscoveryPlatform,
+  modashUserId: string
+): Promise<SavedCreatorRow | null> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("saved_creators")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("platform", platform)
+    .eq("modash_user_id", modashUserId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as never;
+}
+
+export async function getRecentSearches(userId: string, limit = 5): Promise<SearchHistoryRow[]> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("search_history")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
   if (error) throw error;
   return data as never;
 }

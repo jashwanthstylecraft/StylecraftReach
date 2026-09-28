@@ -8,6 +8,7 @@ import type {
   Platform,
   Stage,
 } from "@/lib/types";
+import type { AiScore, ModashProfile, SearchFilters } from "@/lib/modash/types";
 
 async function requireActorEmail(): Promise<string> {
   const { userId } = auth();
@@ -180,4 +181,53 @@ export async function toggleGiftDelivered(giftId: string, delivered: boolean) {
     .eq("id", giftId);
   if (error) throw error;
   revalidatePath("/influencers");
+}
+
+export async function saveCreator(profile: ModashProfile, platform: Platform, score: AiScore) {
+  const { userId } = auth();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createServerClient();
+  const { error } = await supabase.from("saved_creators").upsert(
+    {
+      user_id: userId,
+      modash_user_id: profile.userId,
+      platform,
+      handle: profile.username,
+      full_name: profile.fullName,
+      profile_pic_url: profile.profilePicUrl,
+      followers: profile.followers,
+      engagement_rate: profile.engagementRate,
+      ai_score: score.score,
+      ai_tier: score.tier,
+      ai_fit_reason: score.fitReason,
+      raw_data: profile,
+    },
+    { onConflict: "user_id,modash_user_id,platform" }
+  );
+  if (error) throw error;
+  revalidatePath("/discover/saved");
+}
+
+export async function removeSavedCreator(id: string) {
+  const { userId } = auth();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("saved_creators")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw error;
+  revalidatePath("/discover/saved");
+}
+
+export async function recordSearchHistory(filters: SearchFilters, resultCount: number) {
+  const { userId } = auth();
+  if (!userId) return;
+  const supabase = createServerClient();
+  await supabase.from("search_history").insert({
+    user_id: userId,
+    filters,
+    result_count: resultCount,
+  });
 }
