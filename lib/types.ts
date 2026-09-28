@@ -92,6 +92,62 @@ export interface Gift {
   created_at: string;
 }
 
+export type DiscountType = "percentage" | "fixed";
+export type ConversionSource = "promo_code" | "affiliate_link" | "both";
+
+export interface AffiliateLink {
+  id: string;
+  campaign_influencer_id: string;
+  dub_link_id: string;
+  short_link: string;
+  destination_url: string;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface PromoCode {
+  id: string;
+  campaign_influencer_id: string;
+  code: string;
+  discount_type: DiscountType;
+  discount_value: number;
+  commission_rate: number;
+  usage_count: number;
+  usage_limit: number | null;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Conversion {
+  id: string;
+  campaign_influencer_id: string;
+  promo_code_id: string | null;
+  affiliate_link_id: string | null;
+  order_id: string;
+  order_amount: number;
+  commission_amount: number;
+  commission_paid: boolean;
+  commission_paid_at: string | null;
+  customer_id: string | null;
+  source: ConversionSource;
+  created_at: string;
+}
+
+export interface DailyStat {
+  id: string;
+  campaign_influencer_id: string;
+  date: string;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  commission_amount: number;
+  created_at: string;
+}
+
 // Joined shapes used across the CRM views
 export interface CampaignInfluencerWithInfluencer extends CampaignInfluencer {
   influencer: Influencer;
@@ -99,6 +155,29 @@ export interface CampaignInfluencerWithInfluencer extends CampaignInfluencer {
 
 export interface CampaignInfluencerWithCampaign extends CampaignInfluencer {
   campaign: Campaign;
+}
+
+export interface InfluencerPerformanceRow {
+  campaignInfluencerId: string;
+  influencer: Influencer;
+  campaign: Campaign;
+  stage: Stage;
+  fee: number | null;
+  affiliateLink: AffiliateLink | null;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  commission: number;
+  roi: number | null;
+}
+
+export interface AnalyticsSummary {
+  totalClicks: number;
+  totalConversions: number;
+  totalRevenue: number;
+  totalCommissions: number;
+  overallRoi: number | null;
+  avgOrderValue: number | null;
 }
 
 export interface CampaignInfluencerFull extends CampaignInfluencer {
