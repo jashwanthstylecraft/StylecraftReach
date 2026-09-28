@@ -58,6 +58,14 @@ export interface Influencer {
   modash_user_id: string | null;
 }
 
+export type InvitationDisplayStatus =
+  | "Invited"
+  | "Accepted"
+  | "Declined"
+  | "Active"
+  | "Published"
+  | "Completed";
+
 export interface CampaignInfluencer {
   id: string;
   campaign_id: string;
@@ -69,6 +77,8 @@ export interface CampaignInfluencer {
   affiliate_link: string | null;
   stage_updated_at: string;
   created_at: string;
+  status: InvitationDisplayStatus | null;
+  assignee_name: string | null;
 }
 
 export interface Communication {

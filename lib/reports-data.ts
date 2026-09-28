@@ -7,12 +7,11 @@ export interface ReportFull extends Report {
   influencers: Influencer[];
 }
 
-export async function getReports(): Promise<ReportFull[]> {
+export async function getReports(campaignId?: string): Promise<ReportFull[]> {
   const supabase = createServerClient();
-  const { data: reports, error } = await supabase
-    .from("reports")
-    .select("*")
-    .order("created_at", { ascending: false });
+  let query = supabase.from("reports").select("*").order("created_at", { ascending: false });
+  if (campaignId) query = query.eq("campaign_id", campaignId);
+  const { data: reports, error } = await query;
   if (error) throw error;
 
   const allInfluencerIds = Array.from(new Set((reports ?? []).flatMap((r) => r.influencer_ids ?? [])));

@@ -10,15 +10,19 @@ import { cn } from "@/lib/utils";
 
 export function CreateReportModal({
   influencers,
+  campaignId,
+  defaultSelectedIds,
   onClose,
 }: {
   influencers: Influencer[];
+  campaignId?: string;
+  defaultSelectedIds?: string[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [platform, setPlatform] = useState<ReportPlatform>("all");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set(defaultSelectedIds ?? []));
   const [saving, setSaving] = useState(false);
 
   function toggle(id: string) {
@@ -35,7 +39,7 @@ export function CreateReportModal({
     if (!name.trim() || selected.size === 0) return;
     setSaving(true);
     try {
-      await createReport(name.trim(), platform, Array.from(selected));
+      await createReport(name.trim(), platform, Array.from(selected), [], campaignId ?? null);
       router.refresh();
       onClose();
     } finally {

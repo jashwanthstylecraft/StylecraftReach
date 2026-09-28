@@ -14,6 +14,7 @@ export interface Report {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  campaign_id: string | null;
 }
 
 export interface CommunityList {
@@ -86,6 +87,7 @@ export interface BrandComparisonRow {
   totalReach: number;
   avgEngagement: number;
   totalEmv: number;
+  topInfluencer: string | null;
 }
 
 export interface SimilarCreator {

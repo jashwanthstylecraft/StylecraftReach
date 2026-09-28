@@ -9,7 +9,8 @@ export async function createReport(
   name: string,
   platform: ReportPlatform,
   influencerIds: string[],
-  postIds: string[] = []
+  postIds: string[] = [],
+  campaignId: string | null = null
 ) {
   auth().protect();
   const user = await currentUser();
@@ -22,9 +23,11 @@ export async function createReport(
     post_ids: postIds,
     post_count: postIds.length,
     created_by: user?.primaryEmailAddress?.emailAddress ?? user?.username ?? "team",
+    campaign_id: campaignId,
   });
   if (error) throw error;
   revalidatePath("/reports");
+  revalidatePath("/campaigns");
 }
 
 export async function deleteReports(ids: string[]) {

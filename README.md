@@ -361,6 +361,67 @@ the schema; run them in order after migration 010.
 - **CSV export everywhere** — `lib/utils/export.ts`'s `exportToCSV()` is wired into Reports,
   Brand Comparison, Community, and the Content Library bulk-select bar.
 
+## Campaign detail rebuild + Brand Comparison rebuild + Community upgrade
+
+A follow-up pass based on real Affable.ai screenshots of the live StylecraftUS account.
+Migration `013_campaign_detail_upgrade.sql` adds the schema; run it after 012.
+
+- **`/campaigns/[id]` was fully replaced** (the one deliberate non-additive rebuild in this
+  project, explicitly requested) with a centered header (title, tracking date, hashtags/
+  mentions), 7 stat cards backed by a `campaign_summary` SQL view (computed live, not
+  denormalized columns — a campaign with many content pieces per influencer doesn't fan-out
+  and inflate follower/reach totals, since influencer and content aggregates are computed in
+  separate subqueries before joining), and 6 tabs: **Influencers** (4 sub-tabs — Invitations,
+  Proposals, Product Gifting, Content Approval), **Content**, **Chats**, **Fixed Pay**,
+  **Affiliates**, **Reports**. Nearly everything in the tabs reuses existing Phase 3–6
+  components and data functions filtered to this one campaign, rather than duplicating them:
+  `OutstandingTable`/`PayoutModal` (Fixed Pay), `LinkGenerator`/`LinksTable`/`PromoCodeForm`/
+  `PromoCodesTable` (Affiliates), `SubmissionQueue` (Content Approval), `GiftTracker` per
+  influencer (Product Gifting), `ContentLibraryGrid` (Content), and the existing
+  `portal_messages` table + API route (Chats, now used from the brand side too).
+- **Invitations table** — the 13-column table from the screenshot. The "Status" column
+  (Invited/Accepted/Declined/Active/Published/Completed) is a *display* concept layered on
+  top of the existing Kanban `stage` field via `deriveInvitationStatus()`
+  (`components/campaigns/invitationStatus.ts`) — the Kanban board's `stage` stays the pipeline's
+  one source of truth; `campaign_influencers.status` only overrides the derived label when a
+  brand explicitly sets something the stage pipeline has no equivalent for (e.g. "Published").
+  "Assignee" is a plain free-text name/email (`assignee_name`), not a picker over team
+  members — this app has no Clerk Organizations/team-membership model to pick from.
+- **Proposals** are a new `proposals` table (deliverables as jsonb, a fee, draft/sent/
+  accepted/declined) — intentionally separate from `deliverables` (which is what actually
+  gets checked off once work starts), so a proposal can be revised without touching delivery
+  tracking.
+- **"Send mails"** builds and merge-tags an email from a template, but **does not send a real
+  email** — no provider (Resend or otherwise) is wired up. It writes to a new
+  `campaign_emails_sent` audit table (`delivered` stays `false`) instead of silently
+  succeeding, so the brand has a real record of what was drafted without the app claiming a
+  delivery it can't back up.
+- **"Add influencers"** supports both picking from existing influencers already in the CRM
+  and adding a brand-new one by handle — it does not reopen the Modash discovery search
+  modal inside the tab; that flow already exists at `/discover`.
+- **Creator portal settings** (`creator_portal_settings`, one row per campaign) control what
+  an influencer sees on `/portal/campaigns/[id]` and are edited via the header's
+  "Edit creator portal" button — the checkboxes are stored but the portal page itself doesn't
+  yet read them to conditionally hide sections (a follow-up, not done in this pass).
+- **`/brand-comparison` was fully rebuilt** as a "Create Trends Dashboard" builder (brands,
+  date range, hashtag/caption text filter, metric, MONTH/WEEK/DAY granularity, a sponsored-only
+  checkbox mapped to `mentions_brand`, and a locations tag input that's informational only —
+  it's stored with a saved dashboard but not yet used to filter results). The line chart is an
+  **honest estimate, not real history**: nothing in this schema tracks per-day metrics, only
+  running totals (`tracked_hashtags.post_count`/`total_reach`/`avg_engagement`), so the chart
+  spreads each brand's real total across the selected range with a deterministic per-bucket
+  variance (`generateTrendsSeries` in `lib/trends-dashboard-data.ts`) — a trend *shape*, not
+  authoritative day-by-day data. The comparison table's "Top Influencer" column and the "Top
+  posts per brand" thumbnails use real data (`captured_content`/`competitor_overlap`).
+  Dashboards can be saved (`saved_dashboards`) and reloaded.
+- **Community upgrade** — added an "All Creators" pseudo-list (every influencer, not tied to
+  a saved list), three new columns (Eng%, EMV, Last contacted, Status — from a new
+  `lib/community-stats.ts`), checkbox multi-select with a bulk "Add to campaign" action, and
+  CSV import (parses `handle,platform,email,notes` client-side, calls the existing
+  `createInfluencer` action per row). The underlying `community_lists` schema (an
+  `influencer_ids` array) was kept as-is rather than rebuilt into a join table — the array
+  already supports everything the new UI needs.
+
 ## Deploying
 
 Push to a Git repo and import it in Vercel, then set the same environment variables there
