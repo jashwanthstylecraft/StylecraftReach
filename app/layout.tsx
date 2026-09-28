@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { isClerkConfigured } from "@/lib/clerk-config";
+import { themeInitScript } from "@/lib/theme-script";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,7 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const body = (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} bg-background font-sans antialiased`}
       >

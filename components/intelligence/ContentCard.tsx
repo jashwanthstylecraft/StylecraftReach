@@ -8,14 +8,19 @@ import { PlatformBadge } from "@/components/ui/PlatformBadge";
 import { SentimentBadge } from "./SentimentBadge";
 import { toggleContentApproved, toggleContentFeatured } from "@/lib/intelligence-actions";
 import { formatDate, formatFollowers, cn } from "@/lib/utils";
+import { formatEMV } from "@/lib/utils/emv";
 import type { CapturedContentFull } from "@/lib/intelligence-data";
 
 export function ContentCard({
   content,
   onOpen,
+  selected = false,
+  onToggleSelect,
 }: {
   content: CapturedContentFull;
   onOpen: () => void;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -39,21 +44,38 @@ export function ContentCard({
   return (
     <div
       onClick={onOpen}
-      className="cursor-pointer overflow-hidden rounded-lg border border-border bg-surface hover:border-gold/40"
+      className={cn(
+        "cursor-pointer overflow-hidden rounded-lg border bg-surface hover:border-gold/40",
+        selected ? "border-gold" : "border-border"
+      )}
     >
       <div className="relative aspect-square bg-surface-elevated">
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onClick={(e) => e.stopPropagation()}
+            onChange={onToggleSelect}
+            className="absolute left-2 top-2 z-10 h-4 w-4 accent-gold"
+          />
+        )}
         {content.thumbnail_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={content.thumbnail_url} alt="" className="h-full w-full object-cover" />
         )}
-        <div className="absolute left-2 top-2 flex gap-1">
+        <div className="absolute right-2 top-2 flex items-center gap-1">
+          {content.featured && <Star className="h-4 w-4 fill-gold text-gold" />}
+        </div>
+        <div className="absolute bottom-2 left-2 flex gap-1">
           <PlatformBadge platform={content.platform} />
           <span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] uppercase text-white">
             {content.media_type}
           </span>
         </div>
-        {content.featured && (
-          <Star className="absolute right-2 top-2 h-4 w-4 fill-gold text-gold" />
+        {content.emv !== null && (
+          <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[10px] text-gold">
+            {formatEMV(content.emv)}
+          </span>
         )}
       </div>
       <div className="p-3">

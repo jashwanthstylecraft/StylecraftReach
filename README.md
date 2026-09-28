@@ -307,6 +307,60 @@ with the user before writing any Stripe code).
   `SentimentBadge` styling as `/content-library` rather than a separate component, since the two
   are visually identical.
 
+## Affable.ai feature upgrade (theming + Reports/Brand Comparison/Community/Social)
+
+This pass added ten Affable.ai-style features on top of the six phases above, without touching
+any of that existing code. Migrations `011_affable_upgrade.sql` and `012_affable_seed.sql` add
+the schema; run them in order after migration 010.
+
+- **Light/dark mode** — `tailwind.config.ts` colors are now CSS-variable references
+  (`rgb(var(--color-x) / <alpha-value>)`) so opacity modifiers keep working; the actual values
+  live in `app/globals.css` under `:root.dark` (default) and `:root.light`. An inline anti-FOUC
+  script (`lib/theme-script.ts`) sets the class on `<html>` before paint from `localStorage` or
+  `prefers-color-scheme`; `components/ui/ThemeToggle.tsx` in the header flips and persists it.
+  The influencer portal (`/portal/*`) deliberately keeps its own fixed light theme — the
+  `portal-*` Tailwind tokens stayed hardcoded, unaffected by this toggle.
+- **EMV (Earned Media Value)** — `lib/utils/emv.ts` computes it (`likes×0.01 + comments×0.10 +
+  views×0.003 + shares×0.05`) and formats it (`USD 1.20K`). It's backfilled onto
+  `captured_content`/`brand_mentions` (migration 011) and shown on content cards, the dashboard's
+  brand table, and Brand Comparison.
+- **Reports** (`/reports`) — named, dated snapshots of a set of influencers (`lib/reports-data.ts`,
+  `lib/reports-actions.ts`). Create, delete, merge (unions two reports' influencer/post sets into
+  a new one), and a per-report detail view (`/reports/[id]`) with CSV export.
+- **Brand Comparison** (`/brand-comparison`) — own brands vs. competitors (Braun/Wahl/Andis) on
+  posts, reach, engagement, and EMV, aggregated from `tracked_hashtags` (`lib/brand-comparison-data.ts`).
+  Competitor EMV is derived from the same reach/engagement columns already tracked per hashtag,
+  not fabricated separately, since no real competitor-content-ownership data exists. The six brand
+  colors are the dataviz skill's validated categorical order (adjacent-pair CVD-safe, ΔE ≥ 8.4 in
+  dark mode) — see `DEFAULT_BRANDS` in `lib/affable-types.ts`.
+- **Dashboard upgrade** — "Get Started" tiles (`components/dashboard/GetStartedTiles.tsx`) and an
+  "Influencer Collaboration: Your Brand vs Competitors" table (`components/dashboard/BrandCollaborationTable.tsx`)
+  were added above the existing Phase 1 Kanban board, which is untouched.
+- **Global platform switcher** — a header dropdown (`components/layout/PlatformSwitcher.tsx`,
+  `lib/platform-context.tsx`) persists a preferred platform to `localStorage` and is used as the
+  *default* filter on pages that already have their own platform dropdown (e.g. Content Library);
+  a page's own selector still overrides it. It's intentionally a soft default rather than a hard
+  global filter, since forcing every existing page's data layer to obey one global param was out
+  of scope for this pass.
+- **Campaign cards** — now show `tracked_hashtags`/`tracked_mentions`/`budget_label` (added to
+  `campaigns` in migration 011, seeded with the real Affable.ai account's hashtags/campaign names
+  in 012) and a duplicate-campaign button (`lib/campaigns-actions.ts`).
+- **Content cards** — checkbox multi-select with a bulk action bar ("Export selected" CSV, "Add
+  influencers to..." a Community list) and an EMV badge (`components/intelligence/ContentCard.tsx`,
+  `ContentLibraryGrid.tsx`).
+- **Community** (`/community`) — named creator lists (`community_lists` table, `lib/community-data.ts`,
+  `lib/community-actions.ts`) with CRUD, CSV export, and add-at-creation-time or add-from-Content-Library.
+- **Social accounts** (`/settings/social-accounts`) — **stubbed by design**, per an explicit choice
+  made mid-build: no real Meta/TikTok/Google OAuth app is registered (would need app review,
+  redirect URLs on the deployed domain, and encrypted token storage), so `app/api/social/connect/
+  {instagram,tiktok,youtube}/route.ts` redirect back with the specific missing-credential reason
+  instead of faking a successful connection. The `social_connections` table and
+  `lib/social-data.ts`/`lib/social-actions.ts` (list/disconnect) are real; only the OAuth handshake
+  itself isn't built. Add `META_APP_ID`/`TIKTOK_CLIENT_KEY`/`GOOGLE_CLIENT_ID` (+ secrets) to move
+  past "not configured" — the actual token exchange still needs writing.
+- **CSV export everywhere** — `lib/utils/export.ts`'s `exportToCSV()` is wired into Reports,
+  Brand Comparison, Community, and the Content Library bulk-select bar.
+
 ## Deploying
 
 Push to a Git repo and import it in Vercel, then set the same environment variables there

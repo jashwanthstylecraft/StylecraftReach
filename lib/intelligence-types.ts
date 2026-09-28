@@ -38,6 +38,7 @@ export interface CapturedContent {
   uses_hashtag: boolean;
   approved_by_brand: boolean | null;
   featured: boolean;
+  emv: number | null;
 }
 
 export interface BrandMention {
@@ -60,6 +61,7 @@ export interface BrandMention {
   actioned: boolean;
   action_taken: ActionTaken | null;
   saved: boolean;
+  emv: number | null;
 }
 
 export interface TrackedHashtag {

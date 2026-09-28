@@ -32,6 +32,9 @@ export interface Campaign {
   end_date: string | null;
   brief: string | null;
   created_at: string;
+  tracked_hashtags: string[];
+  tracked_mentions: string[];
+  budget_label: string | null;
 }
 
 export interface Influencer {

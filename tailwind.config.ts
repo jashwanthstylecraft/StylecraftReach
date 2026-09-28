@@ -10,17 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0A0A0B",
-        surface: "#111114",
-        "surface-elevated": "#1A1A1F",
-        border: "#2A2A32",
-        gold: "#C8A96E",
-        success: "#22C55E",
-        warning: "#F59E0B",
-        danger: "#EF4444",
-        "text-primary": "#F4F4F5",
-        "text-secondary": "#9B9BA8",
-        "text-muted": "#5A5A68",
+        // Theme-able tokens — values come from CSS custom properties in
+        // globals.css so /light and /dark resolve to different colors from
+        // the same class names, with Tailwind opacity modifiers (bg-gold/15)
+        // still working via the rgb(var(...) / <alpha-value>) pattern.
+        background: "rgb(var(--color-background) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
+        "surface-elevated": "rgb(var(--color-surface-elevated) / <alpha-value>)",
+        border: "rgb(var(--color-border) / <alpha-value>)",
+        gold: "rgb(var(--color-gold) / <alpha-value>)",
+        success: "rgb(var(--color-success) / <alpha-value>)",
+        warning: "rgb(var(--color-warning) / <alpha-value>)",
+        danger: "rgb(var(--color-danger) / <alpha-value>)",
+        "text-primary": "rgb(var(--color-text-primary) / <alpha-value>)",
+        "text-secondary": "rgb(var(--color-text-secondary) / <alpha-value>)",
+        "text-muted": "rgb(var(--color-text-muted) / <alpha-value>)",
         platform: {
           instagram: "#E4405F",
           tiktok: "#00F2EA",
