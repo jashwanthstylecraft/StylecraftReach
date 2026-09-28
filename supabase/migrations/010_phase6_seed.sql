@@ -11,7 +11,8 @@ insert into tracked_hashtags (hashtag, brand, is_own_brand) values
   ('wahlamb', 'Wahl', false),
   ('wahlprofessional', 'Wahl', false),
   ('andisclippers', 'Andis', false),
-  ('philipsnorelco', 'Philips', false);
+  ('philipsnorelco', 'Philips', false)
+on conflict (hashtag) do nothing;
 
 -- Sample captured content for the top two GAMMA+ influencers
 insert into captured_content (
@@ -38,7 +39,8 @@ join (values
    'been using wahl for 10 years and this might replace it', 'Positive reception, some cross-brand comparison to Wahl in comments', true)
 ) as seed(handle, modash_post_id, media_type, post_url, thumbnail_url, caption, likes, comments, views, posted_at,
           sentiment_score, overall_sentiment, brand_sentiment, key_themes, quotable_comment, sentiment_summary, featured)
-  on seed.handle = i.handle;
+  on seed.handle = i.handle
+on conflict (modash_post_id) do nothing;
 
 -- Sample organic brand mentions (not from tracked campaign influencers)
 insert into brand_mentions (
@@ -50,13 +52,16 @@ insert into brand_mentions (
    847, 94, 12400, 'tag', '@gammaplus_official', 'positive', 74, now() - interval '2 hours'),
   ('tiktok', 'https://tiktok.com/@fadecheck/video/mention2', '@fadecheck', 68000,
    'ranking every clipper brand for 2026 — gamma pro landed top 3', 'https://picsum.photos/seed/bm2/400/400',
-   3200, 210, 89000, 'hashtag', '#gammaplus', 'positive', 68, now() - interval '1 day');
+   3200, 210, 89000, 'hashtag', '#gammaplus', 'positive', 68, now() - interval '1 day')
+on conflict (post_url) do nothing;
 
 -- Sample competitor overlap
 insert into competitor_overlap (influencer_id, competitor_brand, post_url, post_date, evidence_type, notes)
 select i.id, 'Wahl', 'https://instagram.com/p/overlap1', '2026-09-15', 'hashtag', 'Posted #wahlamb content while active on GAMMA+ Launch'
-from influencers i where i.handle = '@markthebarbr';
+from influencers i where i.handle = '@markthebarbr'
+on conflict (influencer_id, competitor_brand, post_date) do nothing;
 
 insert into competitor_overlap (influencer_id, competitor_brand, post_url, post_date, evidence_type, notes)
 select i.id, 'Braun', 'https://instagram.com/p/overlap2', '2026-09-20', 'paid_partnership', 'Sponsored post tag #ad detected'
-from influencers i where i.handle = '@fademaster';
+from influencers i where i.handle = '@fademaster'
+on conflict (influencer_id, competitor_brand, post_date) do nothing;
