@@ -9,16 +9,18 @@ straight into the same pipeline. Phase 3 adds affiliate link tracking (Dub.co), 
 an ROI dashboard on top of that. Phase 4 adds direct influencer payouts via Stripe Connect,
 commission automation, and PDF invoices. Phase 5 adds a separate, lighter-themed portal
 (`/portal/*`) where influencers log in, view briefs, submit content, and track earnings —
-plus `/content-approvals` on the brand side to review what they submit.
+plus `/content-approvals` on the brand side to review what they submit. Phase 6 (final) adds
+content capture, brand mention monitoring, competitor overlap tracking, and a Claude-generated
+weekly intelligence digest.
 
 ## Stack
 
 Next.js 14 (App Router, TypeScript) · Tailwind CSS · Supabase (Postgres) · Clerk (auth,
 role-based for Phase 5) · `@dnd-kit` (drag and drop) · Recharts · Lucide icons ·
-Modash (creator discovery, Phase 2) · Anthropic API (AI relevance scoring, Phase 2) ·
-Dub.co (affiliate links, Phase 3) · `@react-pdf/renderer` (performance report PDFs, Phase 3) ·
-Stripe Connect (payouts, Phase 4) · `pdf-lib` (invoice PDFs, Phase 4) · `svix` (Clerk webhook
-verification, Phase 5).
+Modash (creator discovery + content capture, Phases 2 & 6) · Anthropic API (AI relevance scoring +
+sentiment analysis + digest generation, Phases 2 & 6) · Dub.co (affiliate links, Phase 3) ·
+`@react-pdf/renderer` (performance report PDFs, Phase 3) · Stripe Connect (payouts, Phase 4) ·
+`pdf-lib` (invoice PDFs, Phase 4) · `svix` (Clerk webhook verification, Phase 5).
 
 ## Setup
 
@@ -42,6 +44,8 @@ supabase/migrations/005_phase3_seed.sql          # sample promo codes, links, co
 supabase/migrations/006_phase4_payments.sql      # payments, invoices, payment_schedule, Stripe columns, storage bucket
 supabase/migrations/007_phase4_seed.sql          # sample payments + a scheduled payment
 supabase/migrations/008_phase5_portal.sql        # invitations, content_submissions, portal_messages, notification prefs
+supabase/migrations/009_phase6_intelligence.sql  # captured_content, brand_mentions, tracked_hashtags, competitor_overlap, digests
+supabase/migrations/010_phase6_seed.sql          # tracked hashtags + sample captured content, mentions, overlap
 ```
 
 ### 3. Create a Clerk application
@@ -103,6 +107,14 @@ N8N_PAYMENT_WEBHOOK_URL=
 # Phase 5 — optional, see "Influencer portal" below
 CLERK_WEBHOOK_SECRET=
 N8N_PORTAL_WEBHOOK_URL=
+
+# Phase 6 — optional, see "Content intelligence" below
+CRON_SECRET=
+N8N_STORY_CAPTURE_WEBHOOK=
+N8N_POST_CAPTURE_WEBHOOK=
+N8N_MENTION_CHECK_WEBHOOK=
+N8N_DIGEST_GENERATE_WEBHOOK=
+DIGEST_EMAIL_RECIPIENTS=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only — all Supabase reads/writes happen in server
@@ -144,6 +156,11 @@ Visit `http://localhost:3000` — you'll be redirected to sign in, then to `/das
 | `/portal/earnings` | Earnings summary, by-campaign breakdown, payout history with invoices |
 | `/portal/profile` | Editable profile, Stripe bank connection, notification preferences |
 | `/portal/onboarding` | 4-step first-time setup (welcome → profile → connect Stripe → done) |
+| `/content-library` | Captured posts/reels/stories with filters, sentiment, feature/approve |
+| `/mentions` | Brand mention feed with tracked-keyword sidebar and add-to-CRM/save/ignore |
+| `/competitor-overlap` | Which creators also work with competitor brands, risk-scored |
+| `/intelligence` | Current + past weekly intelligence digests |
+| `/intelligence/[id]` | A single past digest |
 
 ## Notes on Phase 1 scope
 
@@ -255,6 +272,40 @@ with the user before writing any Stripe code).
 - "Approve" on `/content-approvals` marks the deliverable complete and, once *every* deliverable
   for that campaign placement is complete, flips `campaign_influencers.stage` to `Completed`
   automatically — the same stage Phase 1's kanban reads.
+
+## Content intelligence (Phase 6, final)
+
+- **Without `MODASH_API_KEY`**, all of content capture, mention search, and hashtag analytics
+  (`lib/modash/content.ts`) run against deterministic mock data — same `MOCK_MODE` pattern as
+  Phase 2's discovery search, extended to cover posts/stories/mentions/hashtags rather than just
+  creator search. Real mode intentionally **throws** rather than guessing a request shape: Modash's
+  public docs don't stably document a posts/mentions/hashtag-analytics endpoint as of this build,
+  so pretending to call a real endpoint would silently return nothing instead of failing loudly.
+- **Without `ANTHROPIC_API_KEY`**, sentiment analysis (`lib/sentiment.ts`) and the weekly digest's
+  narrative (`lib/digest-generation.ts`) both fall back to templates built from the real aggregated
+  numbers (a keyword-based mock scorer for sentiment, and a plain-language summary of the actual
+  top content/mentions/competitor data for the digest) — same "real data, templated narrative"
+  approach as Phase 2/3's mock fallbacks, just extended to two more call sites.
+- **The five cron routes are called by n8n, not a browser**, so they're exempted from Clerk in
+  `middleware.ts` and instead gated by a shared secret (`CRON_SECRET`, sent as `x-cron-secret` —
+  see `lib/cron-auth.ts`) — same pattern as the Stripe/Shopify webhooks, but for scheduled polling
+  rather than event delivery. `/content-library`'s "Capture now" button is the one exception: it
+  hits `/api/cron/capture-stories` from a signed-in browser session, so that route accepts *either*
+  the cron secret or a valid Clerk session.
+- **Four of the five n8n workflows call back out** to their own `N8N_*_WEBHOOK` env var mid-run for
+  an instant alert (story expiring soon, competitor content detected, high-reach mention, digest
+  ready to send) — full detail on which route fires which webhook, and what to build on the n8n
+  side, is in `docs/n8n-workflows.md`.
+- The weekly digest email is rendered as HTML (`lib/email/digest-template.ts`) and stored on the
+  digest row, but **sending it is n8n's job, not this app's** — same "no Resend installed" note as
+  every earlier phase. "Send digest email" on `/intelligence` marks it sent and hands the rendered
+  HTML to `N8N_DIGEST_GENERATE_WEBHOOK`; "View HTML email" opens the stored HTML directly
+  (`/api/intelligence/digest-html/[id]`) so you can inspect or print it without n8n.
+- Two things trimmed for scope: the brief's `[Reply]` action on `/mentions` was explicitly a
+  placeholder for "future social integration" with nothing to wire it to, so it's omitted rather
+  than built as a dead button; and `/mentions` risk labels reuse the same platform-neutral
+  `SentimentBadge` styling as `/content-library` rather than a separate component, since the two
+  are visually identical.
 
 ## Deploying
 

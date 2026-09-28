@@ -64,6 +64,43 @@ export const TIER_COLORS: Record<Tier, string> = {
   C: "#9B9BA8",
 };
 
+export interface ModashPost {
+  id: string;
+  url: string;
+  thumbnailUrl: string;
+  mediaType: "image" | "video" | "reel" | "story" | "carousel";
+  caption: string;
+  likes: number;
+  comments: number;
+  views: number;
+  shares: number;
+  postedAt: string;
+  isStory: boolean;
+  expiresAt?: string;
+  topComments: string[];
+}
+
+export interface ModashMentionResult {
+  postUrl: string;
+  authorHandle: string;
+  authorFollowers: number;
+  platform: DiscoveryPlatform;
+  caption: string;
+  thumbnailUrl: string;
+  likes: number;
+  comments: number;
+  views: number;
+  matchedKeyword: string;
+  postedAt: string;
+}
+
+export interface ModashHashtagAnalytics {
+  hashtag: string;
+  postCount: number;
+  totalReach: number;
+  avgEngagement: number;
+}
+
 export interface SavedCreatorRow {
   id: string;
   user_id: string;

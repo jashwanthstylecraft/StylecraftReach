@@ -52,6 +52,7 @@ export interface Influencer {
   stripe_onboarded: boolean;
   stripe_onboarded_at: string | null;
   clerk_user_id: string | null;
+  modash_user_id: string | null;
 }
 
 export interface CampaignInfluencer {

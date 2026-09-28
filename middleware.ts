@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   "/portal/sign-in(.*)",
   "/api/webhooks(.*)",
   "/api/stripe/webhook(.*)",
+  "/api/cron(.*)",
+  "/api/analyze-sentiment(.*)",
 ]);
 
 const isPortalRoute = createRouteMatcher(["/portal(.*)"]);

@@ -15,6 +15,10 @@ import {
   DollarSign,
   FileText,
   CheckSquare,
+  Grid,
+  AtSign,
+  GitCompare,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +31,10 @@ const NAV_ITEMS = [
   { href: "/payments", label: "Payments", icon: DollarSign },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/content-approvals", label: "Content Approvals", icon: CheckSquare },
+  { href: "/content-library", label: "Content Library", icon: Grid },
+  { href: "/mentions", label: "Mentions", icon: AtSign },
+  { href: "/competitor-overlap", label: "Competitor Overlap", icon: GitCompare },
+  { href: "/intelligence", label: "Intelligence", icon: Zap },
   { href: "/influencers", label: "Influencers", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/influencers/new", label: "Add influencer", icon: UserPlus },

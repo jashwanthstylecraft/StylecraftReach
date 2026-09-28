@@ -1,6 +1,6 @@
 # n8n workflows
 
-Seven workflows to build in n8n (`josepho05.app.n8n.cloud`). None are wired up yet — this
+Twelve workflows to build in n8n (`josepho05.app.n8n.cloud`). None are wired up yet — this
 documents the steps so they're ready to build.
 
 ## Workflow 1: "StylecraftReach — Daily stats sync"
@@ -110,3 +110,51 @@ node** on `{{$json.type}}` routing to the four branches, rather than four separa
 
 Set `N8N_PORTAL_WEBHOOK_URL` to this workflow's n8n webhook URL. It no-ops (doesn't error) if
 unset, same pattern as every other webhook in this app.
+
+## Workflows 8–12: Content intelligence (Phase 6)
+
+Unlike the earlier phases, these five are n8n **schedules that call into the app** — n8n owns the
+timer, and each workflow's only job is an HTTP Request node hitting the URL below with header
+`x-cron-secret: {CRON_SECRET}`. Three of the five routes also call *out* to their own
+`N8N_*_WEBHOOK` env var mid-run for an instant alert — those are separate n8n workflows with a
+plain Webhook trigger, distinct from the schedule that calls the route.
+
+### 8. Story capture — every 6 hours
+- **n8n:** Schedule (every 6h) → HTTP Request `POST {APP_URL}/api/cron/capture-stories`
+- Captures new Instagram/TikTok/YouTube stories for every `Active`-stage influencer, running
+  Claude sentiment on each (mock fallback without `ANTHROPIC_API_KEY`, same as Phase 2's scoring).
+- If a captured story expires in under 6 hours, the route itself POSTs to
+  `N8N_STORY_CAPTURE_WEBHOOK` — build a small workflow there with a Webhook trigger → Slack/WhatsApp
+  node: "Story expiring soon: {influencerHandle} — {postUrl}".
+
+### 9. Post capture — daily at 3:00 AM
+- **n8n:** Schedule (daily 3am) → HTTP Request `POST {APP_URL}/api/cron/capture-posts`
+- Captures the last 10 posts for every tracked influencer (any stage), sentiment-analyzes each,
+  and flags competitor-hashtag usage into `competitor_overlap`.
+- When a new competitor overlap is detected, POSTs to `N8N_POST_CAPTURE_WEBHOOK` — Webhook trigger
+  → Slack/WhatsApp: "{influencerHandle} posted competitor content ({competitorBrand})".
+
+### 10. Mention monitoring — every 12 hours
+- **n8n:** Schedule (every 12h) → HTTP Request `POST {APP_URL}/api/cron/check-mentions`
+- Searches mock (or, once wired up, real Modash) mentions for the tracked keywords, inserts new
+  ones into `brand_mentions` with sentiment.
+- High-reach mentions (>50K followers) POST to `N8N_MENTION_CHECK_WEBHOOK` immediately — Webhook
+  trigger → WhatsApp: "High-reach mention: {authorHandle} ({authorFollowers} followers) — {postUrl}".
+
+### 11. Hashtag sync — daily at 4:00 AM
+- **n8n:** Schedule (daily 4am) → HTTP Request `POST {APP_URL}/api/cron/sync-hashtags`
+- Refreshes `post_count` / `total_reach` / `avg_engagement` for every row in `tracked_hashtags`
+  (own brands + competitors) from mock/real Modash hashtag analytics.
+
+### 12. Weekly digest — Monday 6:00 AM (generate) + 8:00 AM (send)
+- **n8n:** Schedule (Monday 6am) → HTTP Request `POST {APP_URL}/api/cron/generate-digest`
+- Aggregates the past 7 days across all Phase 6 tables, generates the headline/summary/actions
+  with Claude (mock fallback templates the same fields from the real aggregated numbers when
+  `ANTHROPIC_API_KEY` is unset), renders the HTML email, and upserts `intelligence_digests`.
+- On success, POSTs `{ digestId, headline, emailHtml, recipients }` to
+  `N8N_DIGEST_GENERATE_WEBHOOK` — build a second n8n workflow (Schedule, Monday 8am, or a Webhook
+  trigger reading the same payload) with a **Resend node** sending `emailHtml` to
+  `DIGEST_EMAIL_RECIPIENTS`. Resend isn't installed in this project (same note as every earlier
+  phase) — this is the one place email sending is fully n8n's responsibility, not a fallback.
+- The "Send digest email" button on `/intelligence` does the same hand-off manually (marks
+  `sent_at`, re-fires the same webhook) for on-demand sends outside the Monday schedule.
