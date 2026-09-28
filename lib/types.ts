@@ -48,6 +48,9 @@ export interface Influencer {
   ai_score: number | null;
   notes: string | null;
   created_at: string;
+  stripe_account_id: string | null;
+  stripe_onboarded: boolean;
+  stripe_onboarded_at: string | null;
 }
 
 export interface CampaignInfluencer {
@@ -155,6 +158,59 @@ export interface CampaignInfluencerWithInfluencer extends CampaignInfluencer {
 
 export interface CampaignInfluencerWithCampaign extends CampaignInfluencer {
   campaign: Campaign;
+}
+
+export type PaymentType = "flat_fee" | "commission" | "bonus";
+export type PaymentStatus = "pending" | "processing" | "paid" | "failed" | "cancelled";
+export type ScheduleStatus = "scheduled" | "processing" | "paid" | "cancelled";
+
+export interface Payment {
+  id: string;
+  campaign_influencer_id: string;
+  payment_type: PaymentType;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  stripe_transfer_id: string | null;
+  stripe_account_id: string | null;
+  description: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  invoice_id: string | null;
+  paid_at: string | null;
+  failed_reason: string | null;
+  created_at: string;
+}
+
+export interface LineItem {
+  description: string;
+  amount: number;
+}
+
+export interface Invoice {
+  id: string;
+  payment_id: string;
+  invoice_number: string;
+  influencer_id: string;
+  campaign_id: string;
+  amount: number;
+  currency: string;
+  description: string | null;
+  line_items: LineItem[];
+  pdf_url: string | null;
+  issued_at: string;
+  due_at: string | null;
+}
+
+export interface PaymentSchedule {
+  id: string;
+  campaign_influencer_id: string;
+  payment_type: PaymentType;
+  amount: number | null;
+  scheduled_date: string;
+  status: ScheduleStatus;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface InfluencerPerformanceRow {

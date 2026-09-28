@@ -1,6 +1,6 @@
-# n8n workflows — Phase 3 affiliate tracking
+# n8n workflows
 
-Two workflows to build in n8n (`josepho05.app.n8n.cloud`). Neither is wired up yet — this
+Three workflows to build in n8n (`josepho05.app.n8n.cloud`). None are wired up yet — this
 documents the steps so they're ready to build.
 
 ## Workflow 1: "StylecraftReach — Daily stats sync"
@@ -42,3 +42,33 @@ URL. The app's conversion webhook (`app/api/webhooks/conversion/route.ts`) alrea
 `{ influencerHandle, orderAmount, promoCode, campaignName }` to that URL whenever a conversion is
 recorded — it no-ops (doesn't error) if the env var is unset, so this is safe to leave disconnected
 until workflow 2 exists.
+
+## Workflow 3: "StylecraftReach — Payment sent alert"
+
+**Trigger:** Webhook (POST from the app's payout flow on success).
+
+**Body received:**
+```json
+{
+  "influencerHandle": "@markthebarbr",
+  "influencerEmail": "mark@example.com",
+  "amount": 738.40,
+  "campaignName": "GAMMA+ Launch",
+  "invoiceUrl": "https://...",
+  "paymentType": "commission"
+}
+```
+
+1. **Resend node (or HTTP Request to the Resend API)** — email the influencer:
+   > Subject: "Your payment from StylecraftUS is on the way"
+   > Body: "Hi {name}, ${amount} has been sent for your {campaignName} commissions. [Download invoice]({invoiceUrl})"
+2. **Twilio node** — WhatsApp the Stylecraft team:
+   > "Payment sent: ${amount} to {influencerHandle} for {campaignName}"
+
+### Wiring it to the app
+
+Set `N8N_PAYMENT_WEBHOOK_URL` to workflow 3's n8n webhook URL. `lib/payments-send.ts` POSTs the
+body above to that URL right after a transfer completes (mock or real) and an invoice is
+generated — it no-ops if the env var is unset, same pattern as workflow 2's wiring. Resend itself
+isn't installed in this project (no `RESEND_API_KEY`, no SDK) — email sending for now is either
+this n8n workflow, or the plain `mailto:` link on `/payments/[influencerId]`'s onboarding banner.

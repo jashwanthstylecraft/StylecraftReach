@@ -6,14 +6,16 @@ Tracks influencer relationships across GAMMA+, Johnny B, and Stylecraft campaign
 contact through completed campaigns: Shortlisted → Outreach sent → Negotiating → Active → Completed.
 Phase 2 adds an influencer discovery engine (Modash search + Claude relevance scoring) that feeds
 straight into the same pipeline. Phase 3 adds affiliate link tracking (Dub.co), promo codes, and
-an ROI dashboard on top of that.
+an ROI dashboard on top of that. Phase 4 adds direct influencer payouts via Stripe Connect,
+commission automation, and PDF invoices.
 
 ## Stack
 
 Next.js 14 (App Router, TypeScript) · Tailwind CSS · Supabase (Postgres) · Clerk (auth) ·
 `@dnd-kit` (drag and drop) · Recharts · Lucide icons · Modash (creator discovery, Phase 2) ·
 Anthropic API (AI relevance scoring, Phase 2) · Dub.co (affiliate links, Phase 3) ·
-`@react-pdf/renderer` (performance report PDFs, Phase 3).
+`@react-pdf/renderer` (performance report PDFs, Phase 3) · Stripe Connect (payouts, Phase 4) ·
+`pdf-lib` (invoice PDFs, Phase 4).
 
 ## Setup
 
@@ -34,6 +36,8 @@ supabase/migrations/002_seed_data.sql            # 3 campaigns, 10 influencers, 
 supabase/migrations/003_phase2_discovery.sql     # saved_creators, search_history, unique(handle, platform)
 supabase/migrations/004_phase3_affiliate.sql     # affiliate_links, promo_codes, conversions, daily_stats
 supabase/migrations/005_phase3_seed.sql          # sample promo codes, links, conversions, daily stats
+supabase/migrations/006_phase4_payments.sql      # payments, invoices, payment_schedule, Stripe columns, storage bucket
+supabase/migrations/007_phase4_seed.sql          # sample payments + a scheduled payment
 ```
 
 ### 3. Create a Clerk application
@@ -67,6 +71,13 @@ DUB_API_KEY=
 DUB_WORKSPACE_ID=
 N8N_CONVERSION_WEBHOOK_URL=
 SHOPIFY_WEBHOOK_SECRET=
+
+# Phase 4 — optional, see "Payments" below
+STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_APP_URL=
+N8N_PAYMENT_WEBHOOK_URL=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only — all Supabase reads/writes happen in server
@@ -98,6 +109,9 @@ Visit `http://localhost:3000` — you'll be redirected to sign in, then to `/das
 | `/analytics/[influencerId]` | Per-influencer performance, commission tracker, conversions, PDF report |
 | `/links` | Affiliate link manager (generate via Dub.co, sync stats, revoke) |
 | `/promo-codes` | Promo code manager (create with auto-suggested codes, activate/deactivate) |
+| `/payments` | Outstanding + payment history tabs, batch payout, Stripe onboarding status |
+| `/payments/[influencerId]` | Per-influencer payout detail: onboarding, flat fee, commission, schedule |
+| `/invoices` | Searchable invoice list with PDF download |
 
 ## Notes on Phase 1 scope
 
@@ -155,6 +169,33 @@ Visit `http://localhost:3000` — you'll be redirected to sign in, then to `/das
   directly if you want it to stop resolving.
 - n8n isn't wired up — `docs/n8n-workflows.md` documents both workflows (daily sync, instant
   conversion alert) step by step, ready to build in your n8n instance.
+
+## Payments (Phase 4)
+
+This is the first phase that moves real money, so it was built mock-first on purpose (confirmed
+with the user before writing any Stripe code).
+
+- **Without `STRIPE_SECRET_KEY`**, `lib/stripe/client.ts` fakes Connect accounts, onboarding links,
+  account status, and transfers — a mock transfer completes as `paid` immediately (there's no real
+  Stripe to later fire a `transfer.paid` webhook). `/payments/[influencerId]` shows a
+  **"Simulate onboarding complete"** button (mock mode only) so the whole payout flow — onboard →
+  pay → invoice — is testable without a Stripe account.
+- **`lib/payments-send.ts` never trusts a client-supplied dollar amount.** The transfer amount is
+  always either the stored amount on an existing `pending` payment row, or a fresh sum of that
+  influencer's unpaid `conversions.commission_amount` computed server-side at send time — this is
+  the one place in the app moving real money, so it re-derives the number rather than trusting
+  whatever the browser sent.
+- Invoice PDFs are generated with `pdf-lib` (per the brief) and uploaded to a public Supabase
+  Storage bucket (`stylecraftreach`); `lib/invoice-generation.ts` is shared by both the payout flow
+  and the standalone `/api/invoices/generate` route so a PDF is never built two different ways.
+- "Send via email" on the Stripe onboarding banner is a plain `mailto:` link, not a real send —
+  Resend isn't installed in this project (same note as Phase 1–3's "no Resend yet").
+- `/api/stripe/webhook` is publicly reachable (exempted in `middleware.ts`, same pattern as the
+  Shopify conversion webhook) and verifies Stripe's signature when `STRIPE_WEBHOOK_SECRET` is set;
+  without it, incoming events are trusted unverified so local testing doesn't require a real
+  webhook secret.
+- n8n workflow 3 (`docs/n8n-workflows.md`) documents the "payment sent" alert — not wired up, same
+  as Phase 3's workflows.
 
 ## Deploying
 

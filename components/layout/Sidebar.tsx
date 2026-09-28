@@ -12,6 +12,8 @@ import {
   BarChart2,
   Link2,
   Tag,
+  DollarSign,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +23,8 @@ const NAV_ITEMS = [
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/links", label: "Links", icon: Link2 },
   { href: "/promo-codes", label: "Promo Codes", icon: Tag },
+  { href: "/payments", label: "Payments", icon: DollarSign },
+  { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/influencers", label: "Influencers", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/influencers/new", label: "Add influencer", icon: UserPlus },
