@@ -422,6 +422,34 @@ Migration `013_campaign_detail_upgrade.sql` adds the schema; run it after 012.
   `influencer_ids` array) was kept as-is rather than rebuilt into a join table — the array
   already supports everything the new UI needs.
 
+## Real TikTok connection
+
+`/settings/social-accounts`'s TikTok card is a real OAuth connection (TikTok Login Kit v2),
+not a mock — the first platform upgraded past the "build page + schema, stub the OAuth
+calls" decision made earlier. Instagram and YouTube are still stubbed exactly as before.
+
+- **Migration `014_tiktok_oauth.sql`** adds `avatar_url`/`likes_count`/`video_count`/
+  `refresh_token_expires_at` to `social_connections`; run it after 013.
+- **Scope is deliberately narrow**: `user.info.basic` + `user.info.stats` — the brand's own
+  account stats (follower count, likes, video count), not creator/influencer discovery data.
+  Pulling *other* creators' TikTok stats would need TikTok's Research API or a data provider
+  (Modash already covers that role elsewhere in the app) — a separate, much heavier approval
+  process from Login Kit.
+- **Tokens are encrypted at rest** (`lib/social/encryption.ts`, AES-256-GCM, a fresh IV per
+  value) before ever reaching Postgres — `ENCRYPTION_KEY` is required for
+  `SOCIAL_APP_CONFIGURED.tiktok` to report `true`, not just the client key/secret.
+- **The redirect URI is fixed, not derived per-request** (`lib/social/tiktok.ts`'s
+  `getRedirectUri()` reads `NEXT_PUBLIC_APP_URL`) — Vercel serves this app on several aliases
+  (production domain, `-git-main-`, preview URLs), but TikTok requires an exact string match
+  on `redirect_uri`, so it has to be pinned to whichever one is actually registered in the
+  TikTok for Developers dashboard, not whatever `origin` the incoming request happens to have.
+- **`Sync now`** (the refresh icon next to a connected TikTok account) re-fetches account
+  stats on demand, refreshing the access token first if it's expired — same token-refresh
+  logic a scheduled cron would use, just triggered manually since no cron calls it yet.
+- **CSRF state**: the connect route sets a short-lived, httpOnly `state` cookie scoped to
+  `/api/social/connect/tiktok`; the callback route rejects the exchange if it's missing or
+  doesn't match what TikTok echoes back.
+
 ## Deploying
 
 Push to a Git repo and import it in Vercel, then set the same environment variables there

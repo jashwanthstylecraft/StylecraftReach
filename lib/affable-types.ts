@@ -35,7 +35,11 @@ export interface SocialConnection {
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
+  refresh_token_expires_at: string | null;
   followers: number | null;
+  avatar_url: string | null;
+  likes_count: number | null;
+  video_count: number | null;
   is_active: boolean;
   connected_at: string;
   last_synced_at: string | null;
