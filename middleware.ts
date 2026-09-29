@@ -10,6 +10,10 @@ const isPublicRoute = createRouteMatcher([
   "/api/stripe/webhook(.*)",
   "/api/cron(.*)",
   "/api/analyze-sentiment(.*)",
+  // Required to be publicly viewable for TikTok's (and other OAuth providers')
+  // app-review crawlers, which have no Clerk session.
+  "/privacy-policy",
+  "/terms-of-service",
 ]);
 
 const isPortalRoute = createRouteMatcher(["/portal(.*)"]);
