@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
 
       <div className="space-y-6 text-sm leading-relaxed text-text-secondary">
         <p>
-          SC Reach ("the app") is an internal influencer-marketing tool built for StylecraftUS
+          SC Reach (&ldquo;the app&rdquo;) is an internal influencer-marketing tool built for StylecraftUS
           and its brands (GAMMA+, Johnny B). It is used by StylecraftUS team members to manage
           influencer campaigns, and by invited influencers through a separate portal.
         </p>
@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
             private data on your behalf. Access and refresh tokens are encrypted at rest and used
             only to refresh these stats. You can revoke access at any time from{" "}
             <code className="text-text-primary">/settings/social-accounts</code> in the app, or
-            directly from your TikTok account's connected-apps settings.
+            directly from your TikTok account&apos;s connected-apps settings.
           </p>
         </section>
 

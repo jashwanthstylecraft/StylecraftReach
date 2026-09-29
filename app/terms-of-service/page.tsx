@@ -29,7 +29,7 @@ export default function TermsOfServicePage() {
           <p>
             Where a user connects a third-party account (e.g. TikTok) to the app, that
             connection is used only to display account statistics inside the app. Access can be
-            revoked at any time from within the app or from the third-party platform's own
+            revoked at any time from within the app or from the third-party platform&apos;s own
             connected-apps settings.
           </p>
         </section>
