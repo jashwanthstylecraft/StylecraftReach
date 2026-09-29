@@ -1,28 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-
-type Theme = "light" | "dark";
+import { applyTheme, useCurrentTheme } from "@/lib/use-theme";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme | null>(null);
-
-  useEffect(() => {
-    setTheme(document.documentElement.classList.contains("light") ? "light" : "dark");
-  }, []);
+  const theme = useCurrentTheme();
 
   function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    document.documentElement.classList.remove("light", "dark");
-    document.documentElement.classList.add(next);
-    localStorage.setItem("theme", next);
-    setTheme(next);
+    applyTheme(theme === "dark" ? "light" : "dark");
   }
-
-  // Avoid rendering the wrong icon for a frame before the effect above reads
-  // the real class the inline script already set.
-  if (theme === null) return <div className="h-8 w-8" />;
 
   return (
     <button

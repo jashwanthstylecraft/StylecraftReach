@@ -1,21 +1,15 @@
+"use client";
+
 import { SignIn } from "@clerk/nextjs";
+import { clerkAppearance } from "@/lib/clerk-theme";
+import { useCurrentTheme } from "@/lib/use-theme";
 
 export default function SignInPage() {
+  const theme = useCurrentTheme();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <SignIn
-        path="/sign-in"
-        routing="path"
-        appearance={{
-          variables: {
-            colorPrimary: "#C8A96E",
-            colorBackground: "#111114",
-            colorText: "#F4F4F5",
-            colorInputBackground: "#1A1A1F",
-            colorInputText: "#F4F4F5",
-          },
-        }}
-      />
+      <SignIn path="/sign-in" routing="path" appearance={clerkAppearance(theme)} />
     </div>
   );
 }

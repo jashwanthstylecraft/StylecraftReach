@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkThemeProvider } from "@/components/providers/ClerkThemeProvider";
 import { isClerkConfigured } from "@/lib/clerk-config";
 import { themeInitScript } from "@/lib/theme-script";
 import "./globals.css";
@@ -44,17 +44,5 @@ export default function RootLayout({
     return body;
   }
 
-  return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#C8A96E",
-          colorBackground: "#111114",
-          colorText: "#F4F4F5",
-        },
-      }}
-    >
-      {body}
-    </ClerkProvider>
-  );
+  return <ClerkThemeProvider>{body}</ClerkThemeProvider>;
 }
