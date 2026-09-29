@@ -22,6 +22,15 @@ export const metadata: Metadata = {
   description: "Influencer marketing CRM for StylecraftUS, GAMMA+ and Johnny B.",
 };
 
+// Every page here reads live, per-request Supabase/Clerk data — nothing should
+// ever be statically prerendered at build time. Without this, pages whose data
+// functions don't happen to call a Clerk/cookies/headers API in their direct
+// render path (e.g. lib/social-data.ts, lib/brand-comparison-data.ts) get
+// attempted as static routes during `next build`; if that build-time Supabase
+// call throws (a table not migrated yet, a misconfigured env var), Next.js
+// fails the ENTIRE build ("Export encountered errors..."), not just that route.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
